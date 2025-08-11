@@ -4,15 +4,23 @@ import com.example.application.dto.LoginRequest;
 import com.example.application.dto.LoginResponse;
 
 /**
- * Input port for authentication use case
- * This interface defines the contract for user authentication
+ * Port for authentication operations
+ * This interface defines the contract for authentication use cases
  */
 public interface AuthenticationUseCase {
 
   /**
-   * Authenticates a user with username and password
+   * Authenticates a user and creates a session
    * 
-   * @param loginRequest login credentials
+   * @param loginRequest the login credentials
+   * @return authentication result with user information
+   */
+  LoginResponse authenticateAndCreateSession(LoginRequest loginRequest);
+
+  /**
+   * Authenticates a user without creating a session
+   * 
+   * @param loginRequest the login credentials
    * @return authentication result
    */
   LoginResponse authenticate(LoginRequest loginRequest);

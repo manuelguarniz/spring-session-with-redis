@@ -3,7 +3,6 @@ package com.example.infrastructure.adapter.in.web;
 import com.example.application.port.in.AuthenticationUseCase;
 import com.example.application.dto.LoginRequest;
 import com.example.application.dto.LoginResponse;
-import com.example.application.service.SessionService;
 import com.example.infrastructure.config.TestSecurityConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -32,9 +31,6 @@ class AuthControllerTest {
   @MockBean
   private AuthenticationUseCase authenticationUseCase;
 
-  @MockBean
-  private SessionService sessionService;
-
   @Autowired
   private ObjectMapper objectMapper;
 
@@ -46,7 +42,7 @@ class AuthControllerTest {
         Set.of("ADMIN", "USER"));
     LoginResponse loginResponse = new LoginResponse(true, "Authentication successful", null, userInfo);
 
-    when(authenticationUseCase.authenticate(any(LoginRequest.class))).thenReturn(loginResponse);
+    when(authenticationUseCase.authenticateAndCreateSession(any(LoginRequest.class))).thenReturn(loginResponse);
 
     // When & Then
     mockMvc.perform(post("/api/auth/login")
@@ -58,8 +54,7 @@ class AuthControllerTest {
         .andExpect(jsonPath("$.user.username").value("admin"))
         .andExpect(jsonPath("$.user.email").value("admin@example.com"))
         .andExpect(jsonPath("$.user.roles").isArray())
-        .andExpect(jsonPath("$.user.roles[0]").value("ADMIN"))
-        .andExpect(jsonPath("$.user.roles[1]").value("USER"))
+        .andExpect(jsonPath("$.user.roles").value(org.hamcrest.Matchers.containsInAnyOrder("ADMIN", "USER")))
         // Verificar que no se incluye información de sesión
         .andExpect(jsonPath("$.session").doesNotExist());
   }
@@ -70,7 +65,7 @@ class AuthControllerTest {
     LoginRequest loginRequest = new LoginRequest("admin", "wrongpassword");
     LoginResponse loginResponse = new LoginResponse(false, "Invalid username or password");
 
-    when(authenticationUseCase.authenticate(any(LoginRequest.class))).thenReturn(loginResponse);
+    when(authenticationUseCase.authenticateAndCreateSession(any(LoginRequest.class))).thenReturn(loginResponse);
 
     // When & Then
     mockMvc.perform(post("/api/auth/login")
@@ -87,7 +82,7 @@ class AuthControllerTest {
     LoginRequest loginRequest = new LoginRequest("", "password");
     LoginResponse loginResponse = new LoginResponse(false, "Username is required");
 
-    when(authenticationUseCase.authenticate(any(LoginRequest.class))).thenReturn(loginResponse);
+    when(authenticationUseCase.authenticateAndCreateSession(any(LoginRequest.class))).thenReturn(loginResponse);
 
     // When & Then
     mockMvc.perform(post("/api/auth/login")
@@ -103,7 +98,7 @@ class AuthControllerTest {
     LoginRequest loginRequest = new LoginRequest("admin", "");
     LoginResponse loginResponse = new LoginResponse(false, "Password is required");
 
-    when(authenticationUseCase.authenticate(any(LoginRequest.class))).thenReturn(loginResponse);
+    when(authenticationUseCase.authenticateAndCreateSession(any(LoginRequest.class))).thenReturn(loginResponse);
 
     // When & Then
     mockMvc.perform(post("/api/auth/login")

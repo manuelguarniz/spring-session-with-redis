@@ -3,8 +3,6 @@ package com.example.infrastructure.adapter.in.web;
 import com.example.application.port.in.AuthenticationUseCase;
 import com.example.application.dto.LoginRequest;
 import com.example.application.dto.LoginResponse;
-import com.example.application.service.SessionService;
-import com.example.domain.model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -29,12 +27,11 @@ public class AuthController {
   private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
   private final AuthenticationUseCase authenticationUseCase;
-  private final SessionService sessionService;
 
-  public AuthController(AuthenticationUseCase authenticationUseCase, SessionService sessionService) {
+  public AuthController(AuthenticationUseCase authenticationUseCase) {
     this.authenticationUseCase = authenticationUseCase;
-    this.sessionService = sessionService;
-    logger.info("AuthController initialized with SessionService: {}", sessionService != null ? "OK" : "NULL");
+    logger.info("AuthController initialized with AuthenticationUseCase: {}",
+        authenticationUseCase != null ? "OK" : "NULL");
   }
 
   /**
@@ -48,21 +45,14 @@ public class AuthController {
     try {
       logger.info("Login attempt for user: {}", loginRequest.getUsername());
 
-      LoginResponse response = authenticationUseCase.authenticate(loginRequest);
+      // Usar el caso de uso que maneja autenticación y creación de sesión
+      LoginResponse response = authenticationUseCase.authenticateAndCreateSession(loginRequest);
       logger.info("Authentication result: {}", response.isSuccess());
 
       if (response.isSuccess()) {
-        // Crear sesión para el usuario autenticado
-        User user = getUserFromResponse(response);
-        logger.info("Creating session for user: {}", user.getUsername());
-
         // Configurar el contexto de seguridad de Spring Security
-        configureSecurityContext(user);
-        logger.info("Security context configured for user: {}", user.getUsername());
-
-        // Crear sesión (sin incluir información de sesión en la respuesta)
-        sessionService.createSession(user);
-        logger.info("Session created successfully for user: {}", user.getUsername());
+        configureSecurityContext(response.getUser());
+        logger.info("Security context configured for user: {}", response.getUser().getUsername());
 
         // Crear respuesta simplificada con solo la información del usuario
         Map<String, Object> fullResponse = new HashMap<>();
@@ -104,40 +94,24 @@ public class AuthController {
   }
 
   /**
-   * Helper method to extract User from LoginResponse
-   * 
-   * @param response the login response
-   * @return User object
-   */
-  private User getUserFromResponse(LoginResponse response) {
-    User user = new User();
-    user.setId(response.getUser().getId());
-    user.setUsername(response.getUser().getUsername());
-    user.setEmail(response.getUser().getEmail());
-    user.setRoles(response.getUser().getRoles());
-    user.setEnabled(true);
-    return user;
-  }
-
-  /**
    * Configure Spring Security context after successful authentication
    * 
-   * @param user the authenticated user
+   * @param userInfo the authenticated user info
    */
-  private void configureSecurityContext(User user) {
+  private void configureSecurityContext(LoginResponse.UserInfo userInfo) {
     // Convertir roles a SimpleGrantedAuthority
-    var authorities = user.getRoles().stream()
+    var authorities = userInfo.getRoles().stream()
         .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
         .collect(Collectors.toList());
 
     // Crear token de autenticación
     Authentication authentication = new UsernamePasswordAuthenticationToken(
-        user.getUsername(),
+        userInfo.getUsername(),
         null, // No password needed for session
         authorities);
 
     // Configurar el contexto de seguridad
     SecurityContextHolder.getContext().setAuthentication(authentication);
-    logger.info("Security context set for user: {} with roles: {}", user.getUsername(), user.getRoles());
+    logger.info("Security context set for user: {} with roles: {}", userInfo.getUsername(), userInfo.getRoles());
   }
 }

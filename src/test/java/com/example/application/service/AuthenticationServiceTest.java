@@ -26,11 +26,62 @@ class AuthenticationServiceTest {
   @Mock
   private PasswordEncoder passwordEncoder;
 
+  @Mock
+  private SessionService sessionService;
+
   private AuthenticationService authenticationService;
 
   @BeforeEach
   void setUp() {
-    authenticationService = new AuthenticationService(userRepository, passwordEncoder);
+    authenticationService = new AuthenticationService(userRepository, passwordEncoder, sessionService);
+  }
+
+  @Test
+  void authenticateAndCreateSession_ValidCredentials_ShouldReturnSuccessAndCreateSession() {
+    // Given
+    LoginRequest loginRequest = new LoginRequest("admin", "admin123");
+    User user = createTestUser();
+
+    when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
+    when(passwordEncoder.matches("admin123", "encodedPassword")).thenReturn(true);
+
+    // When
+    LoginResponse response = authenticationService.authenticateAndCreateSession(loginRequest);
+
+    // Then
+    assertTrue(response.isSuccess());
+    assertEquals("Authentication successful", response.getMessage());
+    assertNotNull(response.getUser());
+    assertEquals("admin", response.getUser().getUsername());
+    assertEquals(Set.of("ADMIN", "USER"), response.getUser().getRoles());
+
+    // Verificar que se creó la sesión
+    verify(sessionService).createSession(any(User.class));
+
+    verify(userRepository).findByUsername("admin");
+    verify(passwordEncoder).matches("admin123", "encodedPassword");
+  }
+
+  @Test
+  void authenticateAndCreateSession_InvalidCredentials_ShouldReturnFailureAndNotCreateSession() {
+    // Given
+    LoginRequest loginRequest = new LoginRequest("nonexistent", "password");
+
+    when(userRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
+
+    // When
+    LoginResponse response = authenticationService.authenticateAndCreateSession(loginRequest);
+
+    // Then
+    assertFalse(response.isSuccess());
+    assertEquals("Invalid username or password", response.getMessage());
+    assertNull(response.getUser());
+
+    // Verificar que NO se creó la sesión
+    verify(sessionService, never()).createSession(any(User.class));
+
+    verify(userRepository).findByUsername("nonexistent");
+    verify(passwordEncoder, never()).matches(anyString(), anyString());
   }
 
   @Test
@@ -104,6 +155,7 @@ class AuthenticationServiceTest {
     user.setEnabled(false);
 
     when(userRepository.findByUsername("disabled")).thenReturn(Optional.of(user));
+    when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
 
     // When
     LoginResponse response = authenticationService.authenticate(loginRequest);
@@ -114,7 +166,7 @@ class AuthenticationServiceTest {
     assertNull(response.getUser());
 
     verify(userRepository).findByUsername("disabled");
-    verify(passwordEncoder, never()).matches(anyString(), anyString());
+    verify(passwordEncoder).matches("password", "encodedPassword");
   }
 
   @Test
