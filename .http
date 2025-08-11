@@ -8,3 +8,43 @@ Content-Type: application/json
     "username": "admin",
     "password": "admin123"
 }
+
+### Response login
+HTTP/1.1 200 
+x-content-type-options: nosniff
+x-xss-protection: 0
+cache-control: no-cache, no-store, max-age=0, must-revalidate
+pragma: no-cache
+expires: 0
+x-frame-options: DENY
+set-cookie: JSESSIONID=ZmQ5NThlODEtYzE5ZS00ZDEzLWFjMjQtYzA0NDlmZGExOGI4; Max-Age=1800; Expires=Mon, 11 Aug 2025 21:45:16 GMT; Path=/; HttpOnly; SameSite=Lax
+content-type: application/json
+transfer-encoding: chunked
+date: Mon, 11 Aug 2025 21:15:16 GMT
+connection: close
+
+{
+  "success": true,
+  "message": "Authentication successful",
+  "user": {
+    "roles": [
+      "ADMIN",
+      "USER"
+    ],
+    "email": "admin@example.com",
+    "username": "admin"
+  }
+}
+
+### Example request with cookie
+GET {{baseUrl}}/api/session/validate
+Content-Type: application/json
+set-cookie: JSESSIONID=ZmQ5NThlODEtYzE5ZS00ZDEzLWFjMjQtYzA0NDlmZGExOGI4; Max-Age=1800; Expires=Mon, 11 Aug 2025 21:45:16 GMT; Path=/; HttpOnly; SameSite=Lax
+
+### Response login validate
+HTTP/1.1 200 
+x-content-type-options: nosniff
+x-xss-protection: 0
+cache-control: no-cache, no-store, max-age=0, must-revalidate
+pragma: no-cache
+expires: 0

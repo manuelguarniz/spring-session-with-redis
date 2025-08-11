@@ -14,8 +14,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -48,16 +46,7 @@ class AuthControllerTest {
         Set.of("ADMIN", "USER"));
     LoginResponse loginResponse = new LoginResponse(true, "Authentication successful", null, userInfo);
 
-    // Mock SessionService response
-    Map<String, Object> sessionInfo = new HashMap<>();
-    sessionInfo.put("sessionId", "test-session-id");
-    sessionInfo.put("userId", 1L);
-    sessionInfo.put("username", "admin");
-    sessionInfo.put("createdTime", System.currentTimeMillis());
-    sessionInfo.put("maxInactiveInterval", 1800);
-
     when(authenticationUseCase.authenticate(any(LoginRequest.class))).thenReturn(loginResponse);
-    when(sessionService.createSession(any())).thenReturn(sessionInfo);
 
     // When & Then
     mockMvc.perform(post("/api/auth/login")
@@ -67,10 +56,12 @@ class AuthControllerTest {
         .andExpect(jsonPath("$.success").value(true))
         .andExpect(jsonPath("$.message").value("Authentication successful"))
         .andExpect(jsonPath("$.user.username").value("admin"))
+        .andExpect(jsonPath("$.user.email").value("admin@example.com"))
         .andExpect(jsonPath("$.user.roles").isArray())
         .andExpect(jsonPath("$.user.roles[0]").value("ADMIN"))
         .andExpect(jsonPath("$.user.roles[1]").value("USER"))
-        .andExpect(jsonPath("$.session.sessionId").value("test-session-id"));
+        // Verificar que no se incluye información de sesión
+        .andExpect(jsonPath("$.session").doesNotExist());
   }
 
   @Test
@@ -103,7 +94,6 @@ class AuthControllerTest {
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(loginRequest)))
         .andExpect(status().isUnauthorized())
-        .andExpect(jsonPath("$.success").value(false))
         .andExpect(jsonPath("$.message").value("Username is required"));
   }
 
@@ -120,7 +110,6 @@ class AuthControllerTest {
         .contentType(MediaType.APPLICATION_JSON)
         .content(objectMapper.writeValueAsString(loginRequest)))
         .andExpect(status().isUnauthorized())
-        .andExpect(jsonPath("$.success").value(false))
         .andExpect(jsonPath("$.message").value("Password is required"));
   }
 

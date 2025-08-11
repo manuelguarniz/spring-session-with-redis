@@ -41,7 +41,7 @@ public class AuthController {
    * Login endpoint
    * 
    * @param loginRequest login credentials
-   * @return authentication result with session information
+   * @return authentication result with user information
    */
   @PostMapping("/login")
   public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest loginRequest) {
@@ -60,15 +60,22 @@ public class AuthController {
         configureSecurityContext(user);
         logger.info("Security context configured for user: {}", user.getUsername());
 
-        Map<String, Object> sessionInfo = sessionService.createSession(user);
-        logger.info("Session created successfully: {}", sessionInfo.get("sessionId"));
+        // Crear sesión (sin incluir información de sesión en la respuesta)
+        sessionService.createSession(user);
+        logger.info("Session created successfully for user: {}", user.getUsername());
 
-        // Crear respuesta completa con información de sesión
+        // Crear respuesta simplificada con solo la información del usuario
         Map<String, Object> fullResponse = new HashMap<>();
         fullResponse.put("success", true);
         fullResponse.put("message", "Authentication successful");
-        fullResponse.put("user", response.getUser());
-        fullResponse.put("session", sessionInfo);
+
+        // Solo incluir username, email y roles del usuario
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("username", response.getUser().getUsername());
+        userInfo.put("email", response.getUser().getEmail());
+        userInfo.put("roles", response.getUser().getRoles());
+
+        fullResponse.put("user", userInfo);
 
         return ResponseEntity.ok(fullResponse);
       } else {

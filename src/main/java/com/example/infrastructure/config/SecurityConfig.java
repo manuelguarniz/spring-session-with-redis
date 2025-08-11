@@ -12,6 +12,7 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
  * Spring Security configuration
@@ -21,9 +22,18 @@ import org.springframework.security.config.annotation.authentication.configurati
 @EnableWebSecurity
 public class SecurityConfig {
 
+  private final CorsConfigurationSource corsConfigurationSource;
+
+  public SecurityConfig(CorsConfigurationSource corsConfigurationSource) {
+    this.corsConfigurationSource = corsConfigurationSource;
+  }
+
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
+        // Habilitar CORS
+        .cors(cors -> cors.configurationSource(corsConfigurationSource))
+
         // Deshabilitar CSRF para APIs REST
         .csrf(csrf -> csrf.disable())
 
